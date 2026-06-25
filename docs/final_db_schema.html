@@ -1,0 +1,268 @@
+<style>
+  #erd svg {
+    width: 100%;
+  }
+
+  /* ── Strip strokes from row rects ── */
+  #erd svg.erDiagram .row-rect-odd path,
+  #erd svg.erDiagram .row-rect-odd rect,
+  #erd svg.erDiagram .row-rect-even path,
+  #erd svg.erDiagram .row-rect-even rect {
+    stroke: none !important;
+  }
+
+  /* ── Relationship lines ── */
+  #erd svg .relation {
+    stroke-width: 2.5px !important;
+  }
+
+  #erd svg marker path {
+    stroke-width: 2px !important;
+  }
+
+  /* ── Force ALL attribute-row text to be fully opaque and dark ── */
+  #erd svg .er.attributeBoxOdd text,
+  #erd svg .er.attributeBoxEven text,
+  #erd svg text.attributeType,
+  #erd svg text.attributeName,
+  #erd svg text.attributeKey {
+    fill: #ff008c !important;
+    opacity: 1 !important;
+  }
+
+  /* ── Attribute type: muted grey ── */
+  #erd svg text.attributeType {
+    fill: #ff00ee !important;
+    font-style: italic;
+  }
+
+  /* ── PK/FK key badges ── */
+  #erd svg text.attributeKey {
+    fill: #fee107 !important;
+    font-weight: 700 !important;
+  }
+
+  /* ── Relationship edge labels ── */
+  #erd svg .relationshipLabel {
+    fill: #058b07 !important;
+    font-weight: 600 !important;
+    font-size: 11px !important;
+  }
+
+  /* ── Entity title text ── */
+  #erd svg .entityLabel {
+    fill: #612020 !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.8px !important;
+  }
+</style>
+
+<h2 class="sr-only">Final PostgreSQL database schema for Sampark and Upasthiti showing all tables and their
+  relationships</h2>
+<div id="erd"></div>
+
+<script type="module">
+  import mermaid from 'https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs';
+
+  const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  await document.fonts.ready;
+
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'base',
+    fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
+    themeVariables: {
+      darkMode: dark,
+      fontSize: '13px',
+      fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
+
+      /* Entity header box */
+      mainBkg: dark ? '#1e3a5f' : '#1d4ed8',
+      nodeBorder: dark ? '#3b82f6' : '#1e40af',
+      clusterBkg: dark ? '#0f172a' : '#f0f9ff',
+
+      /* Header text */
+      primaryTextColor: dark ? '#e0f2fe' : '#ffffff',
+
+      /* Body text (attribute names etc.) */
+      textColor: dark ? '#f1f5f9' : '#111827',
+
+      /* Edges */
+      lineColor: dark ? '#38bdf8' : '#2563eb',
+      relationEdgeColor: dark ? '#38bdf8' : '#2563eb',
+
+      /* Edge label bubble */
+      edgeLabelBackground: dark ? '#1e3a5f' : '#dbeafe',
+
+      /* Alternating attribute rows */
+      attributeBackgroundColorOdd: dark ? '#1e293b' : '#ffffff',
+      attributeBackgroundColorEven: dark ? '#0f172a' : '#e0f2fe',
+    },
+  });
+
+  const diagram = `erDiagram
+  KSHETRA {
+    uuid id PK
+    string name
+    bool is_active
+  }
+  AREA {
+    uuid id PK
+    uuid kshetra_id FK
+    string name
+    bool is_active
+    uuid created_by FK
+  }
+  MANDAL {
+    uuid id PK
+    uuid kshetra_id FK
+    uuid area_id FK
+    string name
+    bool is_active
+    uuid created_by FK
+    uuid updated_by FK
+  }
+  TAG {
+    uuid id PK
+    uuid kshetra_id FK
+    string name
+    string color_hex
+    bool is_system
+    bool is_active
+    uuid created_by FK
+  }
+  USER {
+    uuid id PK
+    uuid mandal_id FK
+    string full_name
+    string mobile
+    string hashed_password
+    string role
+    bool is_active
+  }
+  HARIBHAKT {
+    uuid id PK
+    uuid mandal_id FK
+    uuid area_id FK
+    string first_name
+    string middle_name
+    string last_name
+    string mobile
+    string alt_mobile
+    date dob
+    string gender
+    string address
+    string native_village
+    string blood_group
+    string marital_status
+    string work_business
+    string email
+    string photo_url
+    string[] skills
+    string notes
+    string status
+    uuid created_by FK
+    uuid updated_by FK
+  }
+  HARIBHAKT_TAG {
+    uuid haribhakt_id FK
+    uuid tag_id FK
+    string custom_value
+    uuid tagged_by FK
+  }
+  KARYAKAR {
+    uuid id PK
+    uuid haribhakt_id FK
+    uuid mandal_id FK
+    string role
+    bool is_active
+    uuid assigned_by FK
+  }
+  SABHA_SESSION {
+    uuid id PK
+    uuid mandal_id FK
+    date session_date
+    time session_time
+    string sabha_type
+    string notes
+    uuid created_by FK
+  }
+  ATTENDANCE {
+    uuid id PK
+    uuid session_id FK
+    uuid haribhakt_id FK
+    string status
+    bool is_visitor
+    uuid marked_by FK
+  }
+
+  KSHETRA ||--o{ AREA : has
+  KSHETRA ||--o{ MANDAL : has
+  KSHETRA ||--o{ TAG : owns
+  AREA ||--o{ MANDAL : groups
+  AREA ||--o{ HARIBHAKT : locates
+  MANDAL ||--o{ USER : has
+  MANDAL ||--o{ HARIBHAKT : has
+  MANDAL ||--o{ SABHA_SESSION : conducts
+  MANDAL ||--o{ KARYAKAR : has
+  HARIBHAKT ||--o{ HARIBHAKT_TAG : has
+  TAG ||--o{ HARIBHAKT_TAG : used_in
+  HARIBHAKT ||--o| KARYAKAR : may_be
+  HARIBHAKT ||--o{ ATTENDANCE : attends
+  SABHA_SESSION ||--o{ ATTENDANCE : records
+`;
+
+  const { svg } = await mermaid.render('erd-svg', diagram);
+  document.getElementById('erd').innerHTML = svg;
+
+  /* ── Replace header <path> with rounded <rect> ─────────────────────── */
+  document.querySelectorAll('#erd svg .node').forEach(node => {
+    const firstPath = node.querySelector('path[d]');
+    if (!firstPath) return;
+    const d = firstPath.getAttribute('d');
+    const nums = d.match(/-?[\d.]+/g)?.map(Number);
+    if (!nums || nums.length < 8) return;
+    const xs = [nums[0], nums[2], nums[4], nums[6]];
+    const ys = [nums[1], nums[3], nums[5], nums[7]];
+    const x = Math.min(...xs), y = Math.min(...ys);
+    const w = Math.max(...xs) - x, h = Math.max(...ys) - y;
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', x); rect.setAttribute('y', y);
+    rect.setAttribute('width', w); rect.setAttribute('height', h);
+    rect.setAttribute('rx', '8'); rect.setAttribute('ry', '8');
+    for (const a of ['fill', 'stroke', 'stroke-width', 'class', 'style'])
+      if (firstPath.hasAttribute(a)) rect.setAttribute(a, firstPath.getAttribute(a));
+    firstPath.replaceWith(rect);
+  });
+
+  /* ── Strip strokes from odd/even row paths ─────────────────────────── */
+  document.querySelectorAll(
+    '#erd svg .row-rect-odd path, #erd svg .row-rect-even path'
+  ).forEach(el => el.setAttribute('stroke', 'none'));
+
+  /* ── Force-paint all attribute text elements for full contrast ─────── */
+  const attrTextColor = dark ? '#f1f5f9' : '#111827';
+  const attrTypeColor = dark ? '#94a3b8' : '#4b5563';
+  const attrKeyColor = dark ? '#7dd3fc' : '#1d4ed8';
+
+  document.querySelectorAll('#erd svg text').forEach(el => {
+    const cls = el.getAttribute('class') || '';
+    if (cls.includes('attributeName')) {
+      el.setAttribute('fill', attrTextColor);
+      el.style.fontWeight = '600';
+    } else if (cls.includes('attributeType')) {
+      el.setAttribute('fill', attrTypeColor);
+      el.style.fontStyle = 'italic';
+    } else if (cls.includes('attributeKey')) {
+      el.setAttribute('fill', attrKeyColor);
+      el.style.fontWeight = '700';
+    } else if (cls.includes('entityLabel') || cls.includes('entity-label')) {
+      el.setAttribute('fill', '#ffffff');
+      el.style.fontWeight = '800';
+      el.style.letterSpacing = '0.8px';
+    } else if (cls.includes('relationshipLabel')) {
+      el.setAttribute('fill', dark ? '#7dd3fc' : '#1e40af');
+      el.style.fontWeight = '600';
+    }
+  });
+</script>
